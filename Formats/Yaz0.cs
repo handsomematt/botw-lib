@@ -1,5 +1,6 @@
 ﻿using BotWLib.Common;
 using System.IO;
+using System.Text;
 
 namespace BotWLib.Formats
 {
@@ -17,8 +18,8 @@ namespace BotWLib.Formats
         /// <param name="output>The output <see cref="MemoryStream"/> to write decompressed data to.</param>
         public static void Decompress(Stream input, MemoryStream output)
         {
-            using (EndianBinaryReader reader = new EndianBinaryReader(input, Endian.Big))
-            using (EndianBinaryWriter writer = new EndianBinaryWriter(output, Endian.Big))
+            using (EndianBinaryReader reader = new EndianBinaryReader(input, Encoding.ASCII, true, Endian.Big))
+            using (EndianBinaryWriter writer = new EndianBinaryWriter(output, Encoding.ASCII, true, Endian.Big))
             {
                 if (reader.ReadUInt32() != 0x59617A30) // "Yaz0" Magic
                     throw new InvalidDataException("Invalid Yaz0 header.");
