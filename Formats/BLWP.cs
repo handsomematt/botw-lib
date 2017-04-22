@@ -4,6 +4,8 @@ using BotWLib.Common;
 using BotWLib.Types;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 
 namespace BotWLib
 {
@@ -26,46 +28,49 @@ namespace BotWLib
             ObjectInstances = new List<BLWPMesh>();
         }
 
-        public void LoadFromStream(EndianBinaryReader reader)
+        public void LoadFromStream(Stream input)
         {
-            Magic = reader.ReadChars(4).ToString(); // PrOD todo: sanity checks
-            Unknown0 = reader.ReadInt32();
-            Unknown1 = reader.ReadInt32();
-            Unknown2 = reader.ReadInt32();
-            FileSize = reader.ReadInt32();
-            EntryCount = reader.ReadInt32();
-            StringTableOffset = reader.ReadInt32();
-            Padding = reader.ReadInt32();
-
-            // There are EntryCount many InstanceHeaders (+ data) following
-            for (int i = 0; i < EntryCount; i++)
+            using (var reader = new EndianBinaryReader(input, Encoding.ASCII, true, Endian.Big))
             {
-                var size = reader.ReadInt32();
-                var instanceCount = reader.ReadInt32();
-                var stringOffset = reader.ReadInt32();
-                Trace.Assert(reader.ReadInt32() == 0);
+                Magic = reader.ReadChars(4).ToString(); // PrOD todo: sanity checks
+                Unknown0 = reader.ReadInt32();
+                Unknown1 = reader.ReadInt32();
+                Unknown2 = reader.ReadInt32();
+                FileSize = reader.ReadInt32();
+                EntryCount = reader.ReadInt32();
+                StringTableOffset = reader.ReadInt32();
+                Padding = reader.ReadInt32();
 
-                // Read the string name for these instances
-                long streamPos = reader.BaseStream.Position;
-                reader.BaseStream.Position = StringTableOffset + stringOffset;
-                string instanceName = reader.ReadStringUntil('\0');
-
-                BLWPMesh instanceHdr = new BLWPMesh();
-                instanceHdr.InstanceName = instanceName;
-                ObjectInstances.Add(instanceHdr);
-
-                // Jump back to where we were in our stream and read instanceCount many instances of data.
-                reader.BaseStream.Position = streamPos;
-                for (int j = 0; j < instanceCount; j++)
+                // There are EntryCount many InstanceHeaders (+ data) following
+                for (int i = 0; i < EntryCount; i++)
                 {
-                    BLWPMeshInstance inst = new BLWPMeshInstance();
-                    inst.Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                    inst.Rotation = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                    inst.UniformScale = reader.ReadSingle();
-                    instanceHdr.Instances.Add(inst);
+                    var size = reader.ReadInt32();
+                    var instanceCount = reader.ReadInt32();
+                    var stringOffset = reader.ReadInt32();
+                    Trace.Assert(reader.ReadInt32() == 0);
 
-                    reader.ReadUInt32();
+                    // Read the string name for these instances
+                    long streamPos = reader.BaseStream.Position;
+                    reader.BaseStream.Position = StringTableOffset + stringOffset;
+                    string instanceName = reader.ReadStringUntil('\0');
 
+                    BLWPMesh instanceHdr = new BLWPMesh();
+                    instanceHdr.InstanceName = instanceName;
+                    ObjectInstances.Add(instanceHdr);
+
+                    // Jump back to where we were in our stream and read instanceCount many instances of data.
+                    reader.BaseStream.Position = streamPos;
+                    for (int j = 0; j < instanceCount; j++)
+                    {
+                        BLWPMeshInstance inst = new BLWPMeshInstance();
+                        inst.Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                        inst.Rotation = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                        inst.UniformScale = reader.ReadSingle();
+                        instanceHdr.Instances.Add(inst);
+
+                        reader.ReadUInt32();
+
+                    }
                 }
             }
         }
