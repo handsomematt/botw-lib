@@ -7,7 +7,7 @@ namespace BotWLib.Formats
 {
     public class SARC
     {
-        public SARC(MemoryStream inputStream)
+        public SARC(Stream inputStream)
         {
             EndianBinaryReader er = new EndianBinaryReader(inputStream, Endian.Big);
             try
