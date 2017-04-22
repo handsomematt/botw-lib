@@ -32,7 +32,7 @@ namespace BotWLib.Formats
         {
             public BYMLHeader(EndianBinaryReader er)
             {
-                if (er.ReadChars(2).ToString() != "BY") throw new InvalidDataException("Invalid magic number!");
+                if (new string(er.ReadChars(2)) != "BY") throw new InvalidDataException("Invalid magic number!");
                 Version = er.ReadUInt16();
                 NodeNameTableNodeOffset = er.ReadUInt32();
                 StringValueTableNodeOffset = er.ReadUInt32();
