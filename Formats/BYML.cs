@@ -32,8 +32,7 @@ namespace BotWLib.Formats
         {
             public BYMLHeader(EndianBinaryReader er)
             {
-                Magic = er.ReadUInt16();
-                if (Magic != 0x00) throw new InvalidDataException("Invalid magic number!");
+                if (er.ReadChars(2).ToString() != "BY") throw new InvalidDataException("Invalid magic number!");
                 Version = er.ReadUInt16();
                 NodeNameTableNodeOffset = er.ReadUInt32();
                 StringValueTableNodeOffset = er.ReadUInt32();
@@ -89,7 +88,10 @@ namespace BotWLib.Formats
             {
                 NodeTypes = er.ReadBytes((int)NrEntries);
                 while ((er.BaseStream.Position % 4) != 0) er.ReadByte();
-                //Values = er.ReadUInt32s((int)NrEntries);
+
+                Values = new uint[NrEntries];
+                for (int i = 0; i < NrEntries; i++)
+                    Values[i] = er.ReadUInt32();;
                 FullNodes = new BYMLFullNode[NrEntries];
                 for (int i = 0; i < NrEntries; i++)
                 {
@@ -215,8 +217,10 @@ namespace BotWLib.Formats
                 : base(er)
             {
                 long basepos = er.BaseStream.Position - 4;
-                //er.ReadUInt16
-                //StringOffsets = er.ReadUInt32s((int)NrEntries);
+                StringOffsets = new uint[NrEntries];
+                for (int i = 0; i < NrEntries; i++)
+                    StringOffsets[i] = er.ReadUInt32();
+
                 StringTableEndOffset = er.ReadUInt32();
                 long curpos = er.BaseStream.Position;
                 StringTable = new string[NrEntries];
