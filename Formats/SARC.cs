@@ -38,7 +38,7 @@ namespace BotWLib.Formats
                 for (int i = 0; i < SfatHeader.NodeCount; i++) {
                   uint dataLength = SfatNodes[i].NodeDataEndOffset - SfatNodes[i].NodeDataBeginOffset;
 
-                  SfatDataTable[i] = er.ReadBytesAt(SfatNodes[i].NodeDataBeginOffset, (int)dataLength);
+                  SfatDataTable[i] = er.ReadBytesAt(Header.DataOffset + SfatNodes[i].NodeDataBeginOffset, (int)dataLength);
                   SfatNodes[i].copied_data = SfatDataTable[i];
                 }
             }
