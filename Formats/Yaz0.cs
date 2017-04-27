@@ -75,6 +75,8 @@ namespace BotWLib.Formats
                         }
                     }
                 }
+
+                output.Seek(0, SeekOrigin.Begin);
             }
         }
     }
