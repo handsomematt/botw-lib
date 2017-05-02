@@ -31,7 +31,12 @@ namespace BotWLib.Common
         public override long Position
         {
             get { return decompressedPosition; }
-            set { throw new NotImplementedException(); } // todo
+            set {
+                if (value > decompressedPosition)
+                    Seek(value - decompressedPosition, SeekOrigin.Current);
+                else
+                    Seek(value, SeekOrigin.Begin);
+            }
         }
 
         public override long Length
@@ -41,7 +46,28 @@ namespace BotWLib.Common
 
         public override long Seek(long offset, SeekOrigin origin)
         {
+            if (origin == SeekOrigin.Begin)
+            {
+                decompressedPosition = 0;
+                compressedStream.Position = compressedStartPosition;
+                DecompressEnumerator = Decompress(compressedStream).GetEnumerator();
+
+                for (int i = 0; i < offset; i++)
+                    DecompressEnumerator.MoveNext();
+
+                return decompressedPosition;
+            }
+
+            if (origin == SeekOrigin.Current)
+            {
+                for (int i = 0; i < offset; i++)
+                    DecompressEnumerator.MoveNext();
+
+                return decompressedPosition;
+            }
+
             throw new NotImplementedException();
+
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -58,14 +84,19 @@ namespace BotWLib.Common
 
             return i;
         }
+        
+        // we need to store at minimum the last 4KB of decompressed bytes
+        // let's use a circurlar buffer for speed and convinience
+        private CircularBuffer<byte> decompressionBuffer;
 
         private IEnumerator<byte> DecompressEnumerator;
 
         private IEnumerable<byte> Decompress(Stream input)
         {
+            decompressionBuffer = new CircularBuffer<byte>(4096);
+
             // Decompress the data.
-            int decompressedBytes = 0;
-            while (decompressedBytes < decompressedLength)
+            while (decompressedPosition < decompressedLength)
             {
                 // Read the configuration byte of a decompression setting group, and go through each bit of it.
                 byte groupConfig = (byte)input.ReadByte();
@@ -74,16 +105,19 @@ namespace BotWLib.Common
                     // Check if bit of the current chunk is set.
                     if ((groupConfig & (1 << i)) == (1 << i))
                     {
+                        byte value = (byte)input.ReadByte();
+                        decompressionBuffer.PushFront(value);
+
                         // Bit is set, copy 1 raw byte to the output.
-                        yield return (byte)input.ReadByte();
-                        decompressedBytes++;
+                        yield return value;
+                        decompressedPosition++;
                     }
-                    else if (decompressedBytes < decompressedLength) // This does not make sense for last byte.
+                    else if (decompressedPosition < decompressedLength) // This does not make sense for last byte.
                     {
                         // Bit is not set and data copying configuration follows, either 2 or 3 bytes long.
-                        byte byte1 = (byte)input.ReadByte();
-                        byte byte2 = (byte)input.ReadByte();
-                        ushort dataBackSeekOffset = (ushort)(((byte1 & 0xF) << 8) | byte2);
+                        byte[] bytes = new byte[] { (byte)input.ReadByte(), (byte)input.ReadByte() };
+                        ushort dataBackSeekOffset = EndianUtils.SwapBytes(BitConverter.ToUInt16(bytes, 0));
+                        
                         int dataSize;
                         // If the nibble of the first back seek offset byte is 0, the config is 3 bytes long.
                         byte nibble = (byte)(dataBackSeekOffset >> 12/*1 byte (8 bits) + 1 nibble (4 bits)*/);
@@ -99,21 +133,18 @@ namespace BotWLib.Common
                             // Remaining bits are the real back seek offset.
                             dataBackSeekOffset &= 0x0FFF;
                         }
+
+                        if (dataBackSeekOffset > 4095)
+                            throw new Exception("shit!");
+
                         // Since bytes can be reread right after they were written, write and read bytes one by one.
                         for (int j = 0; j < dataSize; j++)
                         {
-                            // Read one byte from the current back seek position.
-                            //writer.BaseStream.Position -= dataBackSeekOffset + 1;
-                            //byte readByte = (byte)writer.BaseStream.ReadByte();
-                            // Write the byte to the end of the memory stream.
-                            //writer.Seek(0, SeekOrigin.End);
-                            //writer.Write(readByte);
+                            byte value = decompressionBuffer[dataBackSeekOffset];
+                            decompressionBuffer.PushFront(value);
 
-                            byte readByte = 0x21;
-
-                            yield return readByte;
-
-                            decompressedBytes++;
+                            yield return value;
+                            decompressedPosition++;
                         }
                     }
                 }
