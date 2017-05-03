@@ -153,12 +153,12 @@ namespace BotWLib.Common
 
         public override bool CanRead
         {
-            get { return true; }
+            get { return decompressedPosition < decompressedLength; }
         }
 
         public override bool CanSeek
         {
-            get { return false;  }
+            get { return true;  }
         }
 
         public override bool CanWrite
