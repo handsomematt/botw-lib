@@ -109,8 +109,8 @@ namespace BotWLib.Common
                         decompressionBuffer.PushFront(value);
 
                         // Bit is set, copy 1 raw byte to the output.
-                        yield return value;
                         decompressedPosition++;
+                        yield return value;
                     }
                     else if (decompressedPosition < decompressedLength) // This does not make sense for last byte.
                     {
@@ -143,8 +143,8 @@ namespace BotWLib.Common
                             byte value = decompressionBuffer[dataBackSeekOffset];
                             decompressionBuffer.PushFront(value);
 
-                            yield return value;
                             decompressedPosition++;
+                            yield return value;
                         }
                     }
                 }
