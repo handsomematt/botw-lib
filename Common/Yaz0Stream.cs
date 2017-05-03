@@ -72,8 +72,13 @@ namespace BotWLib.Common
                 return decompressedPosition;
             }
 
-            throw new NotImplementedException();
+            if (origin == SeekOrigin.End)
+            {
+                var desiredPosition = decompressedLength + offset;
+                return Seek(desiredPosition, SeekOrigin.Begin);
+            }
 
+            return -1;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
