@@ -46,6 +46,12 @@ namespace BotWLib.Common
 
         public override long Seek(long offset, SeekOrigin origin)
         {
+            if (origin == SeekOrigin.Current && offset < 0)
+            {
+                origin = SeekOrigin.Begin;
+                offset = decompressedPosition + offset;
+            }
+
             if (origin == SeekOrigin.Begin)
             {
                 decompressedPosition = 0;
